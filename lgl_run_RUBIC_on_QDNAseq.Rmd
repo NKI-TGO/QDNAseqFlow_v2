@@ -1,0 +1,138 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+rm(list = ls())
+
+```{r runRubic, include=FALSE}
+
+
+# LOAD packages and libraries  =========================================================================
+
+# ... from CRAN
+list.of.packages <- c("data.table","pracma", "digest", "ggplot2", "gtable", "readr", "devtools", "biocManager")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, repos='https://cran.uni-muenster.de/')
+
+# ... from Bioconductor
+list.of.bioconductor.packages <- c("QDNAseq", "QDNAseq.hg19", "CGHregions", "CGHcall", "GeneBreak")
+new.bioconductor.packages <- list.of.bioconductor.packages[!(list.of.bioconductor.packages %in% installed.packages()[,"Package"])]
+if(length(new.bioconductor.packages)) {
+  #source("http://bioconductor.org/biocLite.R") now is BiocManager which is installed with CRAN
+  #biocLite(new.bioconductor.packages)
+  BiocManager::install(new.bioconductor.packages)
+}
+
+# ... from Github
+if(!("RUBIC" %in% installed.packages()[,"Package"]))
+   {
+  library(devtools)
+  install_github("NKI-CCB/RUBIC")
+}
+
+# End of Package installation
+
+
+library(devtools)
+library(RUBIC)
+library(readr)
+
+
+
+# hs37 / hg19:
+
+hs37BEDgene <- read.delim("/Users/l.gonzalez/PIPELINES_gpMeijer/QDNAseqFlow/QDNAseqFlow-versionMay2019/hs37BEDgene.bed", header=FALSE)
+#View(hs37BEDgene)
+numberOfGenes=dim(hs37BEDgene)[1]
+hg19_genes=data.frame(matrix(NA, nrow = numberOfGenes, ncol = 5))
+colnames(hg19_genes)=c("Ensembl Gene ID", "Associated Gene Name",	"Gene Start (bp)",	"Gene End (bp)", "Chromosome Name")
+hg19_genes$`Associated Gene Name`=hs37BEDgene$V4
+hg19_genes$`Gene Start (bp)`=hs37BEDgene$V2
+hg19_genes$`Gene End (bp)`=hs37BEDgene$V3
+hg19_genes$`Chromosome Name`=hs37BEDgene$V1
+
+colnames(hg19_genes)=c("ID", "Name", "Start", "End", "Chromosome")
+write_tsv(hg19_genes, "hg19_genes.tsv", col_names=T)
+
+# ---------------------------------- Bring this from the script run_GeneBreak-convert2Rubic
+# start converter for RUBIC format
+df <- read.table("/Users/l.gonzalez/testing_QDNAseq_Flow/test_2_QDNArun/test2ndbatch/out3step/test2.dewave/30kb-bins/test2.dewave-copyNumbersCalled-30kb-bins.tab", header = T)
+
+#names(cghcall_df)[1] <- paste("Name")
+#names(cghcall_df)[2] <- paste("Chromosome")
+#names(cghcall_df)[3] <- paste("Start")
+#names(cghcall_df)[4] <- paste("End")
+
+markers=data.frame(df$Name, df$Chromosome, (df$End+df$Start-1)/2)
+colnames(markers)=c("Name", "Chromosome","Position")
+
+
+write.table(markers, "30kb_markers_h19.tsv", sep = "\t", col.names = T, row.names = F, append = F, quote = F) 
+#write.table(markers, "30kb_markers_h38.tsv", sep = "\t", col.names = T, row.names = F, append = F, quote = F) 
+
+# ----------------------------------
+
+# hg19 (all have headers except samples)
+# 30kb_samples.tsv
+# 30kb_markers_h19.tsv
+# 30kb_segcna.tsv               
+# hg19_genes.tsv     
+samples <- "/Users/l.gonzalez/testing_QDNAseq_Flow/test_2_QDNArun/test2ndbatch/genebreaktest/30kb_samples.tsv"
+#samples <- "./workingExampleHg19/30kb_samples.tsv"
+
+
+library(data.table)
+
+#markers <- as.data.table(read.delim("/Users/l.gonzalez/testing_QDNAseq_Flow/test_2_QDNArun/test2ndbatch/genebreaktest/30kb_markers_h19.tsv"))
+markers <- as.data.table(read.delim("/Users/l.gonzalez/testing_QDNAseq_Flow/test_2_QDNArun/test2ndbatch/genebreaktest/30kb_markers_h19_copy.tsv"))
+#markers <- as.data.table(read.delim("./workingExampleHg19/30kb_markers_h19_withheader.tsv"))
+seg.cna <- as.data.table(read.delim("/Users/l.gonzalez/testing_QDNAseq_Flow/test_2_QDNArun/test2ndbatch/genebreaktest/30kb_segcna.tsv"))
+
+seg.cnaAdjusted=seg.cna
+seg.cnaAdjusted$Start=seg.cna$Start+14999
+seg.cnaAdjusted$End=seg.cna$End-15000
+#seg.cna <- as.data.table(read.delim("./workingExampleHg19/30kb_segcna_withheader.tsv"))
+#genes <- as.data.table(read.delim("./hg19_genes.tsv")) #where is this file?? it is generated in the previous process
+genes <- as.data.table(read.delim("/Users/l.gonzalez/PIPELINES_gpMeijer/QDNAseqFlow/QDNAseqFlow-versionMay2019/hg19_genes.tsv"))
+#genes <- as.data.table(read.delim("./workingExampleHg19/hg19_genes_withheader.tsv"))
+
+
+library(methods)
+
+# 3. Crate and initialise a RUBIC object.
+
+#rbc <- rubic(0.25, seg.cna, markers, samples, genes)
+rbc0.1 <- rubic(0.1, seg.cna, markers, samples, genes)
+
+#####
+
+
+# 4. Save focal gains and losses to files.
+
+#rbc$save.focal.gains('focal_gains.0.25FDR.tsv')
+#rbc$save.focal.losses('focal_losses.0.25FDR.tsv')
+rbc0.1$save.focal.gains('focal_gains.0.1FDR.tsv')
+rbc0.1$save.focal.losses('focal_losses.0.1FDR.tsv')
+
+# 5. Create and save gain and losses plots for each chromosome.
+
+#rbc$save.plots('plots.0.25FDR')
+rbc0.1$save.plots('plots.0.1FDR')
+
+```
+
+```{r}
+#Examples provided by RUBIC
+
+markersExmp <- system.file("extdata", "markers.tsv", package="RUBIC")
+samplesExmp <- system.file("extdata", "samples.tsv", package="RUBIC")
+seg.cnaExmp <- system.file("extdata", "segcna.tsv", package="RUBIC")
+genesExmp <- system.file("extdata", "genes.tsv", package="RUBIC")
+
+rbcExample <- rubic(0.25, seg.cnaExmp, markersExmp, samplesExmp, genesExmp)
+
+
+
+```
+
