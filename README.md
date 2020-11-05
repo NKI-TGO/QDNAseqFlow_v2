@@ -31,7 +31,7 @@ Unzip the zip file in your Home directory, 'My Documents' or where you are allow
 
 ### Installation
 New version is from 2020
-Go to https://gitlab.rhpc.nki.nl/l.gonzalez/qdnaseq_workflow and click the button "Clone or Download" --> Download zip.
+Go to https://github.com/NKI-TGO/QDNAseqFlow_v2 and click the button "Clone or Download" --> Download zip.
 Unzip the zip file in your Home directory, 'My Documents' or where you are allowed to install programs.
 
 **Required R-version etc.**
@@ -44,38 +44,33 @@ R: Update 2020, the new modifications allow to use the latest R version, using B
 
 Java: You need to hava java installed. Make sure it is in your path. On Windows, this is done like here: https://confluence.atlassian.com/doc/setting-the-java_home-variable-in-windows-8895.html
 
-*Note: In the server rjava libraries are missing and I do not have admin rights, Waiting for Rubayte
+*Note: In the server rjava libraries are missing and I do not have admin rights, Waiting for Rubayte*
 
 
 ### Usage
 
-This workflow consists of 3 main R-programs, that need to be run consecutively:
+This workflow consists of 3 main R-programs, that need to be run consecutively: The workflow is form end to end but you can also run the steps in separate way
 
-1. QDNAseq\_BAM2CopyNumbers.R
-2. QDNAseq\_CopyNumbers2PlotsCallsSegmentFileInclDewave.R
-3. QDNAseq\_FrequencyCGHregionsCGHtest.R
+1. Aligment, sorting and mark duplicates 
+2. QDNAseq_BAM2CopyNumbers.R
+3. QDNAseq_CopyNumbers2PlotsCallsSegmentFileInclDewave.R
 
 Update, the 2019 versions of those steps are not interactluve. Steps 1 and 2, they need to be run from the terminal in the server, and step 3 can be run in a local computer. 
-*Note: In the server rjava libraries are missing and I do not have admin rights, Waiting for Rubayte
+*Note: In the server rjava libraries are missing and I do not have admin rights, Waiting for Rubayte*
 
 
-For the new scrips there is one way to run them
+#### Only one way to run the scripts for the moment, From the command line:
 
-1. From Rstudio: open script file and execute with CTRL-ALT-R
-
-NOt working at this time yet
-
-3. From the command line:
-
-bash script
-1- Alignment: bash path/to/script/1_bwaAlnv2_lgl.sh
+__Bash__
+1. Alignment: bash path/to/script/1_bwaAlnv2_lgl.sh
 Need to make the sam index just right after
 
-R script
-2- Bam to CopyNumbers
+__R scripts__
+
+2. Bam to CopyNumbers
 	/path/to/your/r-installation/Rscript QDNAseq\_BAM2CopyNumbers.R with no options or with --help to get an overview of available command line options.
 
-3- CopyNumber to Plots (Called)
+3. CopyNumber to Plots (Called)
     /path/to/your/r-installation/Rscript QDNAseq\_BAM2CopyNumbers.R with no options or with --help to get an overview of available command line options.
 
 CGHTest:
@@ -89,7 +84,7 @@ GeneBreak
 Open Rstudio and run the script run_GeneBreak-convert2Rubic.R from there
 
 
-4. Input files
+#### Input files
 Alignment
 You need fastq(fq).gz files
 
@@ -100,19 +95,21 @@ CopyNumber to Plots (called)
 You will need the rds file generated in the previous step
 
 CGHTest
-You will need the rds file with the call generated in the previous step
+You will need the rds file with the calls generated in the CopyNumber to Plots step
 Excell file with the sample names 
 
 Clustering
+You will need the rds file with the calls generated in the CopyNumber to Plots step
 
 GeneBreak
+You will need the rds file with the calls generated in the CopyNumber to Plots step
 
 
-5. How to run 
-Alignment 
+#### How to run 
+___Alignment___
 You need to run the script from the folder/directory where your fastq files are store
 
-Bam to CopyNumber
+___Bam to CopyNumber___
 you need to add in the CLI (space separated)
 
 Program(bin) = DATA/share/pipelines/apps/R-3.4.4/bin/Rscript
@@ -125,7 +122,7 @@ Example:
 "/DATA/share/pipelines/apps/R-3.4.4/bin/Rscript /DATA/share/pipelines/PIPELINES/QDNAseqFlow/QDNAseq_BAM2CopyNumbers_parallel.R Bam/ IntEnd_batch1 30 batch1"
 
 
-CopyNumber to Plots (called), Local machine(laptop)
+___CopyNumber to Plots___ (called), Local machine(laptop)
 you need to add in the CLI (space separated)
 
 Program = /usr/local/bin/Rscript
@@ -137,8 +134,7 @@ dewaving = yes  #yes/no (options to run) only for 15, 30, 100 bin size
 Example "/usr/local/bin/Rscript /Users/l.gonzalez/PIPELINES_gpMeijer/QDNAseqFlow/QDNAseqFlow-versionMay2019/QDNAseq_CopyNumbers2PlotsCallsSegmentFileInclDewave_incl.R  batch1/batch1-binSize-30/batch1-copyNumbers-30kb-bins.rds out30kb/ bt1-30kb yes"
 
 
-
-CGHTest  Local machine(laptop)
+___CGHTest___  Local machine(laptop)
 
 Program = /usr/local/bin/Rscript
 Script =
@@ -152,12 +148,12 @@ excell_column(name) = comparison_CvsN+A
 Example:
 /usr/local/bin/Rscript /Users/l.gonzalez/PIPELINES_gpMeijer/QDNAseqFlow/QDNAseqFlow-versionMay2019/QDNAseq_FrequencyCGHregionsCGHtestCMDL_X2_IgnoreUnknownCat.R out3step/test2.dewave/30kb-bins/test2.dewave-copyNumbersCalled-30kb-bins.rds outTest/ test2.dewave_stats_30kb-bins.xlsx stats comparison_CvsN+A
 
-Clustering,  Local machine(laptop)
+___Clustering___,  Local machine(laptop)
 Run in Rstudio
 Add the path the the rds calls file 
 Add a path for the working directory, where the files will be save 
 
-GeneBreak,  Local machine(laptop)
+___GeneBreak___,  Local machine(laptop)
 Run in Rstudio
 Add or chage the paths for the:
 rds calls file
@@ -166,20 +162,19 @@ Call file (tab)
 
 
 
-
-6. Out Files
-From the alignment, You will get:
+#### Out Files
+___From the alignment, You will get:___
 sorted bams
 mark duplicate bam and bai (after the sam indexing)
 
 
-From Bam to CopyNumber, you will get 3 files:
+___From Bam to CopyNumber, you will get 3 files:___
 projectdir-copyNumbers-30kb-bins.igv.bz2 (raw copy numbers in igv format)
 projectdir-copyNumbers-30kb-bins.tsv.bz2 (raw copy numbers as table)
 projectdir-copyNumbers-30kb-bins.rds (R data structure with read counts, needed for next 
 
 
-From the CopyNumber to Plots(called), you will get: This is the *main* output from the pipeline
+___From the CopyNumber to Plots(called), you will get: This is the *main* output from the pipeline___
 
 Directories(dir)
 SmoothPlot (dir):  copy number plots
@@ -200,16 +195,16 @@ projectname-copyNumbersCalled-30kb-bins.rds
 projectname-frequencyPlot-30kb-bins.pdf 
 #frequency plot
 
-CGHTest
+___CGHTest___
 Frequency plots for the two populations that you want to compare (pdf format)
 Stats from the comparison of the groups
 
 
-Clustering
+___Clustering___
 heatmap (pdf format)
 Bed file 
 
-GeneBreak
+___GeneBreak___
 3 tsv files to use in RUBIC
 excel file with the list of most significatly broken, not by chance, genes 
 Right now gene break is running gene centered
