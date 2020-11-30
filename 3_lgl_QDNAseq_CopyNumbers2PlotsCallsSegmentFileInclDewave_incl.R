@@ -115,7 +115,7 @@ if(isRStudio || args[1]=="--interactive") {
   if (inclusionFileQuestion == "i") {
     inclusionFile <- tk_choose.files(caption = "Please select an inclusion file. This should be in XLS or XLSX format and the first column should contain a list of samples you want to keep")
     args=c(copynumberfile, pathToOutputDir, projectname, dewaving, inclusionFile)
-    } else {args=c(copynumberfile, pathToOutputDir, projectname, dewaving)}
+  } else {args=c(copynumberfile, pathToOutputDir, projectname, dewaving)}
 }
 
 
@@ -182,11 +182,13 @@ if(exists("inclusionFile")) {
   }
 }
 library(Biobase)
+### Those are the two main functions Normalized the data and then smooth them
+## then is the dewaving if wanted and then segmented
 copyNumbersNormalized <- normalizeBins(copyNumbers) # normalize bins; default is median normalization
 copyNumbersSmooth <- smoothOutlierBins(copyNumbersNormalized) # smooth outliers based on previous normalization
 
 if(dewaving == 'yes') {
-
+  
   # ... from github: e.g.: github.com/tgac-vumc/QDNAseq.dev/tree/dewave
   if(!"QDNAseq.dev" %in% installed.packages()) {
     library(devtools)  
@@ -208,7 +210,7 @@ if(dewaving == 'yes') {
 }
 
 
-
+##create the directory and make a plot for each file in the analysis
 dir.create(file.path(pathToOutputDir, projectname, paste0(binSize,"kb-bins")), showWarnings = FALSE, recursive=TRUE)
 smoothPlotDir <- paste0(pathToOutputDir, "/", projectname, "/", binSize, "kb-bins/SmoothPlot/")
 dir.create(smoothPlotDir, showWarnings = FALSE, recursive=TRUE)
@@ -230,7 +232,7 @@ for (i in 1:ncol(copyNumbersSmooth)) {
 # copyNumbersSegmented <- segmentBins(copyNumbersSmooth, transformFun="log2", undo.SD=1)
 
 # experimental:
- copyNumbersSegmented <- segmentBins(copyNumbersSmooth, transformFun="sqrt", undo.SD=undoSD, alpha=alpha, segmentStatistic ="seg.median")
+copyNumbersSegmented <- segmentBins(copyNumbersSmooth, transformFun="sqrt", undo.SD=undoSD, alpha=alpha, segmentStatistic ="seg.median")
 
 # original: 
 #copyNumbersSegmented <- segmentBins(copyNumbersSmooth, transformFun="sqrt", undo.SD=undoSD, alpha=alpha)
@@ -258,7 +260,7 @@ dir.create(calledPlotDir, showWarnings = FALSE, recursive=TRUE)
 for (i in 1:ncol(copyNumbersCalled)) {
   png.name <- paste(calledPlotDir, sampleNames(copyNumbersCalled)[i], "_", projectname,"_CalledPlot_",binSize,"kb.png", sep="")
   png(png.name, width = 1280, height = 1024)
-  plot(copyNumbersCalled[,i])
+  plot(copyNumbersCalled[,i], gaincol="red", losscol="blue")
   dev.off()
 }
 
@@ -286,9 +288,9 @@ write.table(cghcall_df, paste(pathToOutputDir, "/", projectname , "/", binSize, 
 exportBins(copyNumbersSegmented, file = paste(pathToOutputDir, "/", projectname , "/", binSize, "kb-bins/",projectname,"-copyNumbersSegmented-",binSize,"kb-bins.tab", sep=""), format="tsv", type="segments")
 
 
-frequencyPlot(copyNumbersCalled)
+frequencyPlot(copyNumbersCalled, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
 pdf(file=paste(pathToOutputDir, "/", projectname , "/", binSize, "kb-bins/", projectname, "-frequencyPlot-", binSize, "kb-bins.pdf", sep=""))
-frequencyPlot(copyNumbersCalled)
+frequencyPlot(copyNumbersCalled, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
 dev.off()
 
 # calculate statistics matrix:
@@ -301,8 +303,9 @@ library(stringr)
 #currentpathToScript = str_extract(string = currentpathToScriptWithScriptname , "/.*/")
 currentpathToScript = str_extract(string = currentpathToScriptWithScriptname , "/.*/|.*\\\\") # /Unix/ OR C:\Windows\ style of path
 
-source(paste0(currentpathToScript, "/QDNAseq-observedVariance.R")) # this code will take a copyNumbers-object as input, calculate segments, var_expect, var_observed, diffvar, total_reads and return them wrapped as dataframe statsDF
-
+# this code will take a copyNumbers-object as input, calculate segments, var_expect, var_observed, diffvar, total_reads and return them wrapped as dataframe statsDF
+source(paste0(currentpathToScript, "/QDNAseq-observedVariance.R"))
+#Remove outliers
 Outlier_removal_in_R_using_IQR_rule <- dget(paste0(currentpathToScript, "/Outlier_removal_in_R_using_IQR_rule.R"))
 
 xlsOutputFile <- paste(projectname, "-statistics-", binSize, "kb-bins.xlsx", sep="")
@@ -310,8 +313,7 @@ Outlier_removal_in_R_using_IQR_rule(OutputDirStats, xlsOutputFile, statsDF)
 
 
 
-# CGHregions: calculation of regions
-
+# CGHregions: calculation of regionsq
 filenameOfCGHregionsOutput <- paste0("/", projectname, "-", binSize, "kb-bins.point01percentsmoothing.CGHregions.tab")
 
 
