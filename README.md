@@ -43,8 +43,8 @@ This workflow consists of 2 main scripts, that need to be run consecutively: The
 
 Those stepts are not interctive, yo need to take care of few features
 
-- path to the hg38 reference, if you do not have any we recommend to use:
-ftp://ftp.ensembl.org/pub/release-76/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+- path to the hg38 reference, if you do not have any we recommend to use: [Homo_sapiens.GRCh38.dna.primary_assembly]https://www.ensembl.org/Homo_sapiens/Info/Index
+[direct downloa]ftp://ftp.ensembl.org/pub/release-76/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 - path to your workinf directory, where you want to save the outputs
 - Path to the rds files with the hg38 bin annotations 
 - Indicate the path to your bam/bai files
