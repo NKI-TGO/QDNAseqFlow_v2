@@ -1,0 +1,243 @@
+---
+title: "QDNAseq_hg38_Bam2Plots Server"
+author: "Leticia G Leon"
+date: "12/09/2020"
+output: html_document
+---
+
+# this block one it once
+```{r}
+#knitr::opts_chunk$set(echo = TRUE)
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+
+#BiocManager::install(c("CGHregions", "imma", "impute", "QDNAseq.dev", "QDNAseq.hg19", "string"))
+```
+
+```{r setup, include=FALSE}
+library(rmarkdown)
+library(QDNAseq, warn.conflicts=F, quietly=T)
+library(Biobase, warn.conflicts=F, quietly=T)
+library(R.cache, warn.conflicts=F, quietly=T)
+#library(QDNAseq.hg19, warn.conflicts=F, quietly=T)
+#library(QDNAseq.hg38, warn.conflicts=F, quietly=T)
+#more options, parte uno de c.raus
+library("future")
+plan(multiprocess)
+options(future.globals.maxSize= 1000000000)
+
+library(devtools)
+library(MASS)
+library(CGHregions)
+library(limma)
+library(impute)
+#library(QDNAseq.dev) #need for dewaving
+install_github("tgac-vumc/QDNAseq.dev", ref = "dewave")
+library(stringr)
+```
+
+### Set up working directory or where files/plots will be save or where your bams are, depens
+```{r }
+#setwd(""/pathto save the files/xxxx_hg38_30kb/"")
+```
+
+Setup Project Name, paths and folder names
+Preselected for 30KB
+```{r}
+pathToOutputDir <- "/pathto save the files/xxxx_hg38_30kb/"
+projectname <- "ngs_hg38_30kb"
+binSize <- 30 #15, 100, 100
+
+
+undoSD=1 # default in QDNAseq segmentation
+alpha=1e-10 # default in QDNAseq segmentation
+```
+
+
+```{r }
+#preselected 30 bin size
+bin <- commandArgs(TRUE)[1]
+if (is.na(bin))
+  #bin <- 15
+  bin <- 30
+bin <- as.integer(bin)
+
+genome <- commandArgs(TRUE)[2]
+if (is.na(genome))
+    #genome <- "hg19"
+    genome <- "hg38"
+
+#library(QDNAseq)
+#library(Biobase)
+#library(R.cache)
+
+setCacheRootPath(path="./.Rcache")
+
+# Change to hg19 or hg38 as needed. With hg19 NO path is needed, only if we ran it before
+if(genome=="hg38"){
+  bins <- readRDS(paste("/pathto/cached-QDNAseq-binAnnotations_hg38/",bin,"k.rds",sep=""))
+} else{
+  bins <- getBinAnnotations(bin, genome=genome)
+}
+bins
+
+###Create the readCounts, using the bins and the bam 
+#QRC <- binReadCounts(bins, path='bam', cache=T)
+#QRC <- binReadCounts(bins, path='../testing_QDNAseq_Flow/bam/mkdup_2bam/', cache=T)
+QRC <- binReadCounts(bins, path='/pathtoBamfiles/RawData/markdup_bam', cache=T)
+
+
+sub("(_[ACGT]+)?(_S\\d+)?(_L\\d{3})?_R\\d{1}_\\d{3}(\\.f(ast)?q\\.gz)?$", "", sampleNames(QRC)) -> samples
+
+if (sum(duplicated(samples)) > 0) {
+        QRC <- poolRuns(QRC, samples=samples, force=TRUE)
+}
+#Save the Raw bins
+saveRDS(QRC, paste(genome, ".", bin,"kbp-raw.rds", sep=""))
+
+QRC.f <- applyFilters(QRC, residual=TRUE, blacklist=TRUE, mappability=FALSE, bases=FALSE)
+#### There is no step for #estimateCorrection !!!!!! Filter and correct for GC contenct and create the Copy Number object
+QCN.fc <- correctBins(QRC.f) # This is the 1st Christian output 
+
+##### Second part of C.raush codes
+QCN.fcn <- normalizeBins(QCN.fc)
+##Smooth before dewaving
+QCN.fcns <- smoothOutlierBins(QCN.fcn)
+```
+
+#########################################################
+##Dewaving steps is here before the Smoothing
+#########################################################
+
+### Dewaving
+Here we need to select the one we want use and mute the others
+If you do not wat to dewave, comment out this block
+```{r }
+library(QDNAseq.dev)
+#binSize == 15
+#NormalCalibrationSet_ofcurrentBinSize = NormalCalibrationSet_15kb
+#binSize == 30 
+NormalCalibrationSet_ofcurrentBinSize = NormalCalibrationSet_30kb
+#if(binSize == 50) 
+#NormalCalibrationSet_ofcurrentBinSize = NormalCalibrationSet_50kb
+#if(binSize == 100) 
+#NormalCalibrationSet_ofcurrentBinSize = NormalCalibrationSet_100kb
+#binSize == 1000
+#NormalCalibrationSet_ofcurrentBinSize = NormalCalibrationSet_1000kb
+ 
+
+QCN.fcnsDewaved = dewaveBins(QCN.fcns, NormalCalibrationSet_ofcurrentBinSize)
+QCN.fcns = QCN.fcnsDewaved
+
+```
+
+## Continue with the smoothing step and so on
+```{r, message=FALSE }
+#save the Smoothing, After dewaving we create the plots from here
+saveRDS(QCN.fcns, paste(genome, ".", bin, "kbp.rds", sep=""))
+#Create the segmented objet
+QCN.fcnss <- segmentBins(QCN.fcns)
+QCN.fcnssn <- normalizeSegmentedBins(QCN.fcnss)
+#Save segmented CopyNumber object, create teh plots and folder from here
+saveRDS(QCN.fcnssn, paste(genome, ".", bin, "kbp-segmented.rds", sep=""))
+#Create the calls 
+QCN.fcnssnc <- callBins(QCN.fcnssn)
+#Save called CopyNumber object
+saveRDS(QCN.fcnssnc, paste(genome, ".", bin,"kbp-called.rds", sep=""))
+#Export bins of the calls
+exportBins(QCN.fcnssnc, paste(genome, ".", bin, "kbp-copynumbers.igv", sep=""), format="igv", type="copynumber")
+exportBins(QCN.fcnssnc, paste(genome, ".", bin, "kbp-segments.igv", sep=""), format="igv", type="segments")
+exportBins(QCN.fcnssnc, paste(genome, ".", bin, "kbp-calls.igv", sep=""), format="igv", type="calls")
+
+```
+
+
+
+This is to create the Frequency plot
+```{r}
+frequencyPlot(QCN.fcnssnc, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
+pdf(file=paste(pathToOutputDir, projectname, "-frequencyPlot-", binSize, "kb-bins.pdf", sep=""))
+frequencyPlot(QCN.fcnssnc, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
+dev.off()
+
+plot(QCN.fcnssnc, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
+frequencyPlot(QCN.fcnssnc, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
+```
+
+This is to create the folders and save the plots. I am going to save only the called plots for the moment
+```{r }
+##create the directory and make a plot for each file in the analysis
+
+calledPlotDir <- paste(pathToOutputDir, "/", projectname, "/", binSize, "kb-bins/CalledPlot/", sep="")
+dir.create(calledPlotDir, showWarnings = FALSE, recursive=TRUE)
+for (i in 1:ncol(QCN.fcnssnc)) {
+  png.name <- paste(calledPlotDir, sampleNames(QCN.fcnssnc)[i], "_", projectname,"_CalledPlot_",binSize,"kb.png", sep="")
+  png(png.name, width = 1280, height = 1024)
+  plot(QCN.fcnssnc[,i], gaincol="red", losscol="blue")
+  dev.off()
+}
+```
+
+
+
+```{r }
+library(CGHregions)
+cghcall <- makeCgh(QCN.fcnssnc)
+
+#cghcall_df <- data.frame(featureNames(cghcall), chromosomes(cghcall), bpstart(cghcall), bpend(cghcall), calls(cghcall), copynumber(cghcall), segmented(cghcall))
+cghcall_df <- data.frame(featureNames(cghcall), chromosomes(cghcall), bpstart(cghcall), bpend(cghcall), calls(cghcall))
+names(cghcall_df)[1] <- paste("Name")
+names(cghcall_df)[2] <- paste("Chromosome")
+names(cghcall_df)[3] <- paste("Start")
+names(cghcall_df)[4] <- paste("End")
+```
+
+
+This is to create the Stats folder and the files inside, same as Christian had
+```{r }
+# calculate statistics matrix:
+OutputDirStats <- paste(pathToOutputDir, "/", projectname, "/", binSize, "kb-bins/stats/", sep="")
+dir.create(OutputDirStats, showWarnings = FALSE, recursive=TRUE)
+
+# get the path where this script is in:
+#currentpathToScriptWithScriptname = pathToScriptWithScriptname()
+library(stringr)
+#currentpathToScript = str_extract(string = currentpathToScriptWithScriptname , "/.*/")
+#currentpathToScript = str_extract(string = currentpathToScriptWithScriptname , "/.*/|.*\\\\") # /Unix/ OR C:\Windows\ style of path
+currentpathToScript <- "/home/l.gonzalez/Notebooks/bash_R_scripts/"
+
+# this code will take a copyNumbers-object as input, calculate segments, var_expect, var_observed, diffvar, total_reads and return them wrapped as dataframe statsDF
+#Use the whole path
+copyNumbersCalled <- QCN.fcnssnc
+#source(paste0(currentpathToScript, "QDNAseq-observedVariance.R"))
+source("/pathto/Notebooks/bash_R_scripts/QDNAseq-observedVariance.R")
+#Remove outliers
+#Use the whole path
+Outlier_removal_in_R_using_IQR_rule <- dget(paste0(currentpathToScript, "Outlier_removal_in_R_using_IQR_rule.R"))
+
+xlsOutputFile <- paste(projectname, "-statistics-", binSize, "kb-bins.xlsx", sep="")
+Outlier_removal_in_R_using_IQR_rule(OutputDirStats, xlsOutputFile, statsDF)
+
+```
+
+
+```{r }
+
+# CGHregions: calculation of regions
+filenameOfCGHregionsOutput <- paste0("/", projectname, "-", binSize, "kb-bins.point01percentsmoothing.CGHregions.tab")
+
+
+
+# copyNumbersCalled = readRDS(filenameOfCopyNumbersCalledRDSfile) # needed for importing copy numbers here. 
+# cghcall <- makeCgh(copyNumbersCalled) # this was done already above
+#cghregions_normalRegioning1percent <- CGHregions(cghcall, averror=0.01) # 1% error rate is considered "normal" according to CGHregions paper, when intending to compare groups
+#cghregions_lenientRegioningPoint01percent <- CGHregions(cghcall, averror=0.0001) # 0.01 % error rate will result in extremely lenient smoothing
+#cghregions_severeRegioning2point5percent <- CGHregions(cghcall, averror=0.025) # 2.5 % error rate will result in extremely dramatic smoothing, when intending to compare groups with <= 10 members
+cghregions <- CGHregions(cghcall, averror=0.0001) # =0.01 % error rate will result in extremely lenient smoothing
+
+cghregions_df <- data.frame( chromosomes(cghregions), bpstart(cghregions), bpend(cghregions), nclone(cghregions), avedist(cghregions), regions(cghregions) )
+write.table(cghregions_df, paste0(pathToOutputDir, "/", projectname , "/", binSize, "kb-bins/",filenameOfCGHregionsOutput), quote=F, sep="\t")
+
+CGHregionsDF2stats <- dget(paste0(currentpathToScript, "CGHregionsDF2stats.R"))
+CGHregionsDF2stats(cghregions_df, binSize, paste0(OutputDirStats,filenameOfCGHregionsOutput))
+```
