@@ -6,7 +6,7 @@ output: html_document
 ---
 
 # this block one it once
-```{r}
+```{r message = FALSE, warning = FALSE}
 #knitr::opts_chunk$set(echo = TRUE)
 #if (!requireNamespace("BiocManager", quietly = TRUE))
 #    install.packages("BiocManager")
@@ -36,13 +36,13 @@ library(stringr)
 ```
 
 ### Set up working directory or where files/plots will be save or where your bams are, depens
-```{r }
+```{r message = FALSE, warning = FALSE}
 #setwd("/pathto save the files/xxxx_hg38_100kb/")
 ```
 
 Setup Project Name, paths and folder names
 Preselected for 100kb
-```{r}
+```{r message = FALSE, warning = FALSE}
 pathToOutputDir <- "/pathto save the files/xxxx_hg38_100kb/"
 projectname <- "ngs_hg38_100kb"
 binSize <- 100 #15, 100, 100
@@ -54,7 +54,7 @@ alpha=1e-10 # default in QDNAseq segmentation
 
 
 Preselected for 100kb
-```{r }
+```{r message = FALSE, warning = FALSE}
 bin <- commandArgs(TRUE)[1]
 if (is.na(bin))
   #bin <- 15
@@ -111,7 +111,7 @@ QCN.fcns <- smoothOutlierBins(QCN.fcn)
 Here we need to select the one we want use and mute the other
 Preselected for 100kb
 If you do not want to dewave comment out the entire block
-```{r }
+```{r message = FALSE, warning = FALSE}
 library(QDNAseq.dev)
 #binSize == 15
 #NormalCalibrationSet_ofcurrentBinSize = NormalCalibrationSet_15kb
@@ -131,7 +131,7 @@ QCN.fcns = QCN.fcnsDewaved
 ```
 
 ## Continue with the smoothing step and so on
-```{r, message=FALSE }
+```{r message = FALSE, warning = FALSE }
 #save the Smoothing, After dewaving we create the plots from here
 saveRDS(QCN.fcns, paste(genome, ".", bin, "kbp.rds", sep=""))
 #Create the segmented objet
@@ -153,7 +153,7 @@ exportBins(QCN.fcnssnc, paste(genome, ".", bin, "kbp-calls.igv", sep=""), format
 
 
 This is to create the Frequency plot
-```{r}
+```{r message = FALSE, warning = FALSE}
 frequencyPlot(QCN.fcnssnc, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
 pdf(file=paste(pathToOutputDir, projectname, "-frequencyPlot-", binSize, "kb-bins.pdf", sep=""))
 frequencyPlot(QCN.fcnssnc, gaincol="red", losscol="blue", ampcol="purple", delcol="darkblue")
@@ -164,7 +164,7 @@ frequencyPlot(QCN.fcnssnc, gaincol="red", losscol="blue", ampcol="purple", delco
 ```
 
 This is to create the folders and save the plots. I am going to save only the called plots for the moment
-```{r }
+```{r message = FALSE, warning = FALSE}
 ##create the directory and make a plot for each file in the analysis
 
 calledPlotDir <- paste(pathToOutputDir, "/", projectname, "/", binSize, "kb-bins/CalledPlot/", sep="")
@@ -179,7 +179,7 @@ for (i in 1:ncol(QCN.fcnssnc)) {
 
 
 
-```{r }
+```{r message = FALSE, warning = FALSE}
 library(CGHregions)
 cghcall <- makeCgh(QCN.fcnssnc)
 
@@ -193,7 +193,7 @@ names(cghcall_df)[4] <- paste("End")
 
 
 This is to create the Stats folder and the files inside, same as Christian had
-```{r }
+```{r message = FALSE, warning = FALSE}
 # calculate statistics matrix:
 OutputDirStats <- paste(pathToOutputDir, "/", projectname, "/", binSize, "kb-bins/stats/", sep="")
 dir.create(OutputDirStats, showWarnings = FALSE, recursive=TRUE)
@@ -220,7 +220,7 @@ Outlier_removal_in_R_using_IQR_rule(OutputDirStats, xlsOutputFile, statsDF)
 ```
 
 
-```{r }
+```{r message = FALSE, warning = FALSE}
 
 # CGHregions: calculation of regions
 filenameOfCGHregionsOutput <- paste0("/", projectname, "-", binSize, "kb-bins.point01percentsmoothing.CGHregions.tab")

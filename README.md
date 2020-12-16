@@ -54,19 +54,27 @@ ftp://ftp.ensembl.org/pub/release-76/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.
 
 
 
-#### Only one way to run the scripts for the moment, From the command line:
+#### To Run those scripts: 
 
-__Bash__
+
+__Bash__From command line
 1. Alignment: bash path/to/script/1_bwaAlnv2_lgl.sh
+
 Need to make the bam index just right after
+
+
 
 __R scripts__
 
 2. QDNAseq_hg38_Bam2CpNCalls.Rmd
-This is a R markdown script, the best way to run it, and modify is in Rstudio. Once you modifly the path and select you bin size you can use the option Knit to run the entire code and generate an html(pdf etc) to keep a record of the settings that you ran for each study. 
+This is a R markdown script, the msot friendly way to modify is in Rstudio. Once you modifly the path and select you bin size you can use the option Knit to run the entire code and generate an html(pdf etc) to keep a record of the settings that you ran for each study. 
+
+If you prefer not to depend on Rstudio, you can modify the paths and bin size using any editor that you like and run it in CLI with this option:
+R -e "rmarkdown::render('/path to the Rmarkdown script /testCLI_Knit/test_knitCLI.Rmd')"
+
 
 CGHTest:
-    /path/to/your/r-installation/Rscript QDNAseq\QDNAseq_FrequencyCGHregionsCGHtest_logrank_CMDL.R
+/path/to/your/r-installation/Rscript QDNAseq\QDNAseq_FrequencyCGHregionsCGHtest_logrank_CMDL.R
 
 Clustering
 Open Rstudio and run the script  wecca-hclust-bootstrap.R from there from there
@@ -74,7 +82,7 @@ Open Rstudio and run the script  wecca-hclust-bootstrap.R from there from there
 
 GeneBreak
 Open Rstudio and run the script run_GeneBreak-convert2Rubic.Rmd from there
-
+R -e "rmarkdown::render('/path to the Rmarkdown script /run_GeneBreak-convert2Rubic.Rmd')"
 
 #### Input files
 Alignment

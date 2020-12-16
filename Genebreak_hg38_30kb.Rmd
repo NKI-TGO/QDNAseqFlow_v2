@@ -58,17 +58,17 @@ library(xlsx)
 
 
 Working directory
-```{r}
+```{r message = FALSE, warning = FALSE}
 setwd("/pathto save the files/xxxx_hg38_100kb/")
 ```
 
 Load data, copy number Calls rds file
-```{r}
+```{r message = FALSE, warning = FALSE}
 copyNumbersCalled=readRDS("/path to rds file/hg38.100kbp-called.rds") #
 ```
 
 Setup Project Name, paths and folder names
-```{r}
+```{r message = FALSE, warning = FALSE}
 pathToOutputDir <- "/path to save the files/xxxx_hg38_100kb/"
 projectname <- "ngs_hg38_100kb"
 binSize <- 100 #15, 100, 100
@@ -76,7 +76,7 @@ binSize <- 100 #15, 100, 100
 
 
 # Make the cghcall object, although we did in the previous step, But I think we didn't save it (CHHHHHHHEEEEECCCCKKKKK)
-```{r}
+```{r message = FALSE, warning = FALSE}
 cghcall <- makeCgh(copyNumbersCalled)
 
 cghcall_df <- data.frame(featureNames(cghcall), chromosomes(cghcall), bpstart(cghcall), bpend(cghcall), segmented(cghcall))
@@ -105,7 +105,7 @@ colnames(cghcall_df)[-c(1:4)]=samples
 ```
 
 #### Running GeneBreak here FOR HG38
-```{r}
+```{r message = FALSE, warning = FALSE}
 breakpoints <- getBreakpoints( data = cghcall )
 
 breakpointsFiltered <- bpFilter( breakpoints, filter = "CNA-ass" )
@@ -148,7 +148,7 @@ write.xlsx(recur, "recurhg38_data100kb.xlsx")
 Convert to RUBIC part
 #######################################################################
 Looks a lot like the the cghcall all over again
-```{r}
+```{r message = FALSE, warning = FALSE}
 # start converter for RUBIC format
 
 names(cghcall_df)[1] <- paste("Name")
